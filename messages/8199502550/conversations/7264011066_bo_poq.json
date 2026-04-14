@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": "2026-04-04 02:55:42",
+    "message_id": 1157,
+    "direction": "admin→user",
+    "from": {
+      "id": "7264011066",
+      "name": "ᯓََِِ⸁صَوْت²الصَّمْت乛.",
+      "username": "@bo_poq"
+    },
+    "to": {
+      "id": "8096340658",
+      "username": "@me"
+    },
+    "text": "مرحبا"
+  },
+  {
+    "timestamp": "2026-04-04 02:56:16",
+    "message_id": 1163,
+    "direction": "admin→user",
+    "from": {
+      "id": "7264011066",
+      "name": "ᯓََِِ⸁صَوْت²الصَّمْت乛.",
+      "username": "@bo_poq"
+    },
+    "to": {
+      "id": "8096340658",
+      "username": "@me"
+    },
+    "text": "مرحبا"
+  }
+]
