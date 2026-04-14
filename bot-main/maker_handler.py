@@ -18,6 +18,9 @@ from db_config import get_config, set_config
 
 TOKEN = config.TOKEN
 
+# تتبع tasks البوتات التي أنشأها الصانع — يمنع إنشاء task مكررة لنفس البوت
+_maker_active_tasks: dict = {}
+
 def _load_namero_admins() -> list:
     """تحميل قائمة الأدمنية من config.py + ملف namero_admins إن وُجد"""
     admins = set(str(x) for x in config.ADMIN_IDS if x)
@@ -1575,9 +1578,12 @@ async def handle_maker(body: bytes, request_host: str = None) -> dict:
                 # حفظ التوكن بصيغتين: NAMERO/{idbot}.py و botmak/{idbot}/token
                 write_file(f"NAMERO/{idbot}.py", f'tokenbot = "{text.strip()}"\n')
                 write_file(f"botmak/{idbot}/token", text.strip())
-                # بدء Polling للبوت الجديد فوراً
-                asyncio.create_task(_run_saleh_polling(f"botmak/{idbot}"))
-                print(f"[Maker] 🤖 بدء Polling للبوت الجديد @{userbot} ({idbot})")
+                # بدء Polling للبوت الجديد فوراً (مع منع التكرار)
+                if idbot not in _maker_active_tasks or _maker_active_tasks[idbot].done():
+                    _maker_active_tasks[idbot] = asyncio.create_task(_run_saleh_polling(f"botmak/{idbot}"))
+                    print(f"[Maker] 🤖 بدء Polling للبوت الجديد @{userbot} ({idbot})")
+                else:
+                    print(f"[Maker] ℹ️ البوت {idbot} (@{userbot}) يعمل بالفعل - تم تجاهل task مكرر")
 
                 if not file_exists(f"botmak/{idbot}/zune"):
                     write_json(f"botmak/{idbot}/zune", {"sudo": str(from_id)})

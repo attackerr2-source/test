@@ -564,6 +564,11 @@ def _bot9_kbd(setting: dict) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# مجموعة لتتبع الـ update_ids التي تمت معالجتها — تمنع التكرار
+# ═══════════════════════════════════════════════════════════════════════════
+_processed_update_ids: set = set()
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Main async handler
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -574,6 +579,15 @@ async def handle_namero4(
     NaMerOset: dict,
     makerinve: dict,
 ) -> None:
+
+    # ── deduplication: منع معالجة نفس الـ update مرتين ──────────────────
+    _upd_id = update.get("update_id", 0)
+    if _upd_id:
+        if _upd_id in _processed_update_ids:
+            return
+        _processed_update_ids.add(_upd_id)
+        if len(_processed_update_ids) > 1000:
+            _processed_update_ids.clear()
 
     # ── local path helper ──────────────────────────────────────────────────
     def p(*parts) -> str:
