@@ -241,42 +241,47 @@ def _get_admin_list(bot_dir: str) -> list:
     
     return _get_cached(f"admins_{bot_dir}", fetch_admins)
 
-def _get_setting(bot_dir: str) -> dict:
-    """Get setting — always read fresh from disk (no cache)."""
+def _fetch_setting_raw(bot_dir: str) -> dict:
+    """تحميل الإعدادات الخام من DB/القرص وتطبيق القيم الافتراضية."""
     setting_path = os.path.join(bot_dir, "setting")
     setting = _rj(setting_path)
-    
-    # تأكد من وجود قاموس "twasl"، ولا تستبدل الإعدادات الموجودة
+
     if not setting:
         setting = {"twasl": {}}
-    
     if "twasl" not in setting:
         setting["twasl"] = {}
-    
-    # فقط ملء القيم الافتراضية للمفاتيح الناقصة (بدون استبدال الموجودة)
+
     defaults = {
-        "type":              "✅",
-        "replymod":          "✅",
-        "modetext1":         "✅",  # الصور — مسموحة بشكل افتراضي
-        "modetext2":         "✅",  # الموسيقى — مسموحة بشكل افتراضي
-        "modetext3":         "✅",  # الملفات — مسموحة بشكل افتراضي
-        "modetext4":         "✅",  # الملصقات — مسموحة بشكل افتراضي
-        "modetext5":         "✅",  # الفيديو — مسموح بشكل افتراضي
-        "modetext6":         "✅",  # الصوتيات — مسموحة بشكل افتراضي
-        "modetext7":         "✅",  # جهة الاتصال — مسموحة بشكل افتراضي
-        "modetext8":         "✅",  # إعادة التوجيه — مسموحة بشكل افتراضي
-        "modetext9":         "✅",  # جميع الروابط — مسموحة بشكل افتراضي
-        "modetext10":        "✅",  # روابط تيلجرام — مسموحة بشكل افتراضي
-        "notif_new_users":   "✅",  # إخطارات المستخدمين الجدد
-        "notif_blocked":     "✅",  # إخطارات الحظر
+        "type":            "✅",
+        "replymod":        "✅",
+        "modetext1":       "✅",
+        "modetext2":       "✅",
+        "modetext3":       "✅",
+        "modetext4":       "✅",
+        "modetext5":       "✅",
+        "modetext6":       "✅",
+        "modetext7":       "✅",
+        "modetext8":       "✅",
+        "modetext9":       "✅",
+        "modetext10":      "✅",
+        "notif_new_users": "✅",
+        "notif_blocked":   "✅",
     }
-    
-    # ضيف القيم الافتراضية فقط للمفاتيح الناقصة
-    for key, default_value in defaults.items():
-        if key not in setting["twasl"]:
-            setting["twasl"][key] = default_value
-    
+    for k, v in defaults.items():
+        if k not in setting["twasl"]:
+            setting["twasl"][k] = v
     return setting
+
+
+def _get_setting(bot_dir: str) -> dict:
+    """إعدادات البوت — مع كاش TTL لتقليل قراءات DB."""
+    return _get_cached(f"setting_{bot_dir}", _fetch_setting_raw, bot_dir)
+
+
+def _save_setting(bot_dir: str, setting_path: str, data: dict) -> None:
+    """حفظ الإعدادات وتحديث الكاش فوراً."""
+    _wj(setting_path, data)
+    _invalidate_cache(f"setting_{bot_dir}")
 
 def _track_user(user_id, user_name, bot_dir: str) -> bool:
     """Track new users and notify admins. Returns True if new user."""
@@ -876,7 +881,7 @@ async def handle_namero4(
             "reply_markup": _bot9_kbd(setting),
         })
         setting["twasl"]["moder"] = "s"
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
 
     # ══════════════════════════════════════════════════════════════════════
     # bromk — toggle message receive on/off
@@ -896,7 +901,7 @@ async def handle_namero4(
             ]}),
         })
         setting["twasl"]["moder"] = "s"
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
 
     # ══════════════════════════════════════════════════════════════════════
     # bbuio — choose message receive location
@@ -917,7 +922,7 @@ async def handle_namero4(
             ]}),
         })
         setting["twasl"]["moder"] = "s"
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
 
     # ══════════════════════════════════════════════════════════════════════
     # man3er — media restrictions panel + commands (admin only)
@@ -938,7 +943,7 @@ async def handle_namero4(
             "reply_markup": _media_kbd(setting),
         })
         setting["twasl"]["moder"] = "links"
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
 
     # ══════════════════════════════════════════════════════════════════════
     # Media toggle buttons (photo/music/file/stick/video/mov/contact/i3ad/alllink/linktele)
@@ -963,7 +968,7 @@ async def handle_namero4(
             key     = _MEDIA_TOGGLE_MAP[data]
             current = s2.get("twasl", {}).get(key, "✅")
             s2.setdefault("twasl", {})[key] = "❌" if current == "✅" else "✅"
-            _wj(setting_path, s2)
+            _save_setting(bot_dir, setting_path, s2)
             s2 = _rj(setting_path)  # reload updated
         
         await bot_call(token, "editMessageText", {
@@ -999,7 +1004,7 @@ async def handle_namero4(
             ]}),
         })
         setting["twasl"]["mode"] = "set2"
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
 
     # ══════════════════════════════════════════════════════════════════════
     # Receive welcome message text when mode == "set2"
@@ -1024,7 +1029,7 @@ async def handle_namero4(
         })
         setting["twasl"]["start"] = text
         setting["twasl"]["mode"]  = None
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
 
     # ══════════════════════════════════════════════════════════════════════
     # onbott — toggle typing indicator
@@ -1033,7 +1038,7 @@ async def handle_namero4(
         s2 = _rj(setting_path)
         cur = s2.get("twasl", {}).get("type", "✅")
         s2.setdefault("twasl", {})["type"] = "❌" if cur == "✅" else "✅"
-        _wj(setting_path, s2)
+        _save_setting(bot_dir, setting_path, s2)
         await _sendmessage()
 
     # ══════════════════════════════════════════════════════════════════════
@@ -1043,7 +1048,7 @@ async def handle_namero4(
         s2 = _rj(setting_path)
         cur = s2.get("twasl", {}).get("replymod", "✅")
         s2.setdefault("twasl", {})["replymod"] = "❌" if cur == "✅" else "✅"
-        _wj(setting_path, s2)
+        _save_setting(bot_dir, setting_path, s2)
         await _sendmessage()
 
     # ══════════════════════════════════════════════════════════════════════
@@ -2256,7 +2261,7 @@ async def handle_namero4(
         current = setting.get("twasl", {}).get("notif_new_users", "✅")
         new_status = "❌" if current == "✅" else "✅"
         setting.setdefault("twasl", {})["notif_new_users"] = new_status
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
         
         new_user_status = new_status
         blocked_status = setting.get("twasl", {}).get("notif_blocked", "✅")
@@ -2282,7 +2287,7 @@ async def handle_namero4(
         current = setting.get("twasl", {}).get("notif_blocked", "✅")
         new_status = "❌" if current == "✅" else "✅"
         setting.setdefault("twasl", {})["notif_blocked"] = new_status
-        _wj(setting_path, setting)
+        _save_setting(bot_dir, setting_path, setting)
         
         new_user_status = setting.get("twasl", {}).get("notif_new_users", "✅")
         blocked_status = new_status
