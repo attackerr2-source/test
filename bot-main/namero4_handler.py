@@ -679,13 +679,11 @@ async def handle_namero4(
         print(f"[DEBUG] رسالة من {from_id} ({name}): {text[:50]}")
         print(f"[DEBUG] text.strip().lower() = '{text.strip().lower()}'")
 
-    # include config developer/admins plus legacy construct
+    # sudo_ids: فقط أدمن البوت الخاص بهذا البوت المصنوع
+    # المطور العام لا يملك صلاحيات تلقائية على بوتات المستخدمين الآخرين
     sudo_ids = set()
-    if admin and admin.isdigit():
+    if admin and str(admin).lstrip("-").isdigit():
         sudo_ids.add(str(admin))
-    sudo_ids.add(str(config.DEVELOPER_ID))
-    for adm in getattr(config, "ADMIN_IDS", []):
-        sudo_ids.add(str(adm))
 
     # ── cached data ──────────────────────────────────────────────────────
     try:

@@ -667,13 +667,11 @@ async def handle_namero4(
     if not admin or not str(admin).isdigit():
         print(f"⚠️ تحذير: admin غير محدد بشكل صحيح في {bot_dir}")
     
-    # include config developer/admins plus legacy construct
+    # sudo_ids: فقط أدمن البوت الخاص بهذا البوت المصنوع
+    # المطور العام لا يملك صلاحيات تلقائية على بوتات المستخدمين الآخرين
     sudo_ids = set()
-    if admin and admin.isdigit():
+    if admin and str(admin).lstrip("-").isdigit():
         sudo_ids.add(str(admin))
-    sudo_ids.add(str(config.DEVELOPER_ID))
-    for adm in getattr(config, "ADMIN_IDS", []):
-        sudo_ids.add(str(adm))
 
     # ── cached data ──────────────────────────────────────────────────────
     try:
