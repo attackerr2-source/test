@@ -119,12 +119,23 @@ def ensure_dir(path: str) -> None:
 
 
 def read_file(path: str, default: str = "") -> str:
-    """قراءة نص مباشرة من قاعدة البيانات"""
-    from db_config import db_read
+    """قراءة نص — أولاً من DB، وعند الغياب من القرص"""
+    from db_config import db_read, db_exists
     try:
-        return db_read(path, default)
+        if db_exists(path):
+            return db_read(path, default)
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8", errors="ignore") as _f:
+                return _f.read()
+        return default
     except Exception as e:
         print(f"[DB] خطأ في قراءة '{path}': {e}")
+        try:
+            if os.path.isfile(path):
+                with open(path, "r", encoding="utf-8", errors="ignore") as _f:
+                    return _f.read()
+        except Exception:
+            pass
         return default
 
 
@@ -147,12 +158,17 @@ def append_file(path: str, content: str) -> None:
 
 
 def read_json(path: str, default: dict = None) -> dict:
-    """قراءة JSON مباشرة من قاعدة البيانات"""
-    from db_config import db_read_json
+    """قراءة JSON — أولاً من DB، وعند الغياب من القرص"""
+    from db_config import db_read_json, db_exists
     if default is None:
         default = {}
     try:
-        return db_read_json(path, default)
+        if db_exists(path):
+            return db_read_json(path, default)
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8", errors="ignore") as _f:
+                return json.load(_f)
+        return default
     except Exception as e:
         print(f"[DB] خطأ في قراءة JSON '{path}': {e}")
         return default
@@ -168,22 +184,27 @@ def write_json(path: str, data: dict) -> None:
 
 
 def file_lines(path: str) -> list:
-    """قراءة أسطر مباشرة من قاعدة البيانات"""
-    from db_config import db_lines
+    """قراءة أسطر — أولاً من DB، وعند الغياب من القرص"""
+    from db_config import db_lines, db_exists
     try:
-        return db_lines(path)
+        if db_exists(path):
+            return db_lines(path)
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8", errors="ignore") as _f:
+                return [ln.rstrip("\n") for ln in _f.readlines()]
+        return []
     except Exception as e:
         print(f"[DB] خطأ في قراءة أسطر '{path}': {e}")
         return []
 
 
 def file_exists(path: str) -> bool:
-    """التحقق من وجود البيانات في قاعدة البيانات فقط"""
+    """التحقق من وجود البيانات في DB أو على القرص"""
     from db_config import db_exists
     try:
-        return db_exists(path)
+        return db_exists(path) or os.path.isfile(path)
     except Exception:
-        return False
+        return os.path.isfile(path)
 
 
 def delete_file(path: str) -> None:

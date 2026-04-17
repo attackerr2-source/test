@@ -107,8 +107,48 @@ async def start_bot_polling(idbot: str) -> bool:
     return True
 
 
+def _sync_disk_infoidbots():
+    """
+    دمج قائمة البوتات من القرص مع DB لضمان عدم خسارة أي بوت مصنوع.
+    يُستدعى مرة واحدة عند كل إقلاع.
+    """
+    from db_config import db_read, db_exists, db_write
+    import os as _os
+
+    disk_path = "infoidbots"
+    disk_ids: set = set()
+
+    if _os.path.isfile(disk_path):
+        try:
+            with open(disk_path, "r", encoding="utf-8", errors="ignore") as _f:
+                for line in _f:
+                    line = line.strip()
+                    if line and line.lstrip("-").isdigit():
+                        disk_ids.add(line)
+        except Exception as e:
+            print(f"[Sync] ⚠️  خطأ في قراءة infoidbots من القرص: {e}")
+
+    db_ids: set = set()
+    if db_exists(disk_path):
+        for line in db_read(disk_path, "").split("\n"):
+            line = line.strip()
+            if line and line.lstrip("-").isdigit():
+                db_ids.add(line)
+
+    merged = db_ids | disk_ids
+    if merged != db_ids:
+        db_write(disk_path, "\n".join(sorted(merged)))
+        added = merged - db_ids
+        print(f"[Sync] ✅ تمت إضافة بوتات من القرص: {sorted(added)}")
+    elif not merged and disk_ids:
+        db_write(disk_path, "\n".join(sorted(disk_ids)))
+        print(f"[Sync] ✅ تمت مزامنة infoidbots من القرص: {sorted(disk_ids)}")
+
+
 async def start_all_created_bots():
     """تشغيل polling لجميع البوتات المصنوعة الموجودة"""
+    _sync_disk_infoidbots()
+
     if not file_exists("infoidbots"):
         print("[Boot] ℹ️  لا توجد بوتات مصنوعة")
         return
